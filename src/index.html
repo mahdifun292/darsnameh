@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="dark" data-accent="violet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'"
+    />
+    <title>درس‌نامه — برنامه‌ریز درسی</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles-pages.css" />
+  </head>
+  <body>
+    <div class="app-titlebar" id="app-titlebar">
+      <div class="titlebar-brand">
+        <svg width="18" height="18" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="titlebar-grad" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#a78bfa" /><stop offset="1" stop-color="#2dd4bf" />
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#titlebar-grad)" opacity=".16" />
+          <path d="M13 12.5h13.5a5 5 0 0 1 5 5V36a4 4 0 0 0-4-4H13z" stroke="url(#titlebar-grad)" stroke-width="2.4" stroke-linejoin="round" />
+          <path d="M13 12.5v19.5" stroke="url(#titlebar-grad)" stroke-width="2.4" stroke-linecap="round" />
+          <path d="m21 19 1.5 3.4 3.5.4-2.6 2.4.7 3.5-3.1-1.8-3.1 1.8.7-3.5-2.6-2.4 3.5-.4z" fill="url(#titlebar-grad)" />
+        </svg>
+        <span>درس‌نامه</span>
+      </div>
+      <div class="titlebar-controls">
+        <button type="button" class="titlebar-btn" data-window-action="minimize" aria-label="کوچک کردن" title="کوچک کردن">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="titlebar-btn" data-window-action="maximize" aria-label="بزرگ کردن" title="بزرگ کردن">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2.4" y="2.4" width="7.2" height="7.2" rx="1.2" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
+        </button>
+        <button type="button" class="titlebar-btn close" data-window-action="close" aria-label="بستن" title="بستن">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 3 6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="app">
+      <div class="boot-screen">
+        <div class="boot-logo">
+          <div class="boot-glow"></div>
+          <svg width="64" height="64" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="boot-grad" x1="6" y1="4" x2="42" y2="46" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#a78bfa" /><stop offset="1" stop-color="#2dd4bf" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#boot-grad)" opacity=".16" />
+            <path d="M13 12.5h13.5a5 5 0 0 1 5 5V36a4 4 0 0 0-4-4H13z" stroke="url(#boot-grad)" stroke-width="2.4" stroke-linejoin="round" />
+            <path d="M13 12.5v19.5" stroke="url(#boot-grad)" stroke-width="2.4" stroke-linecap="round" />
+            <path d="m21 19 1.5 3.4 3.5.4-2.6 2.4.7 3.5-3.1-1.8-3.1 1.8.7-3.5-2.6-2.4 3.5-.4z" fill="url(#boot-grad)" />
+          </svg>
+        </div>
+        <span class="boot-title">درس‌نامه</span>
+        <span class="boot-sub">در حال آماده‌سازی برنامه‌ات…</span>
+      </div>
+    </div>
+
+    <script src="js/util.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/icons.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/forms.js"></script>
+    <script src="js/pages/home.js"></script>
+    <script src="js/pages/schedule.js"></script>
+    <script src="js/pages/homework.js"></script>
+    <script src="js/pages/exams.js"></script>
+    <script src="js/pages/summary.js"></script>
+    <script src="js/pages/grades.js"></script>
+    <script src="js/pages/study.js"></script>
+    <script src="js/pages/settings.js"></script>
+    <script src="js/onboarding.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

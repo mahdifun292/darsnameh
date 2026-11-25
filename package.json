@@ -1,0 +1,97 @@
+{
+  "name": "darsnameh",
+  "productName": "Darsnameh",
+  "version": "1.0.0",
+  "description": "درس‌نامه — برنامه‌ریز درسی، تکالیف، امتحانات، نمرات و مطالعهٔ عصرانه",
+  "main": "main.js",
+  "homepage": "https://github.com/darsnameh-app/darsnameh",
+  "desktopName": "darsnameh.desktop",
+  "author": {
+    "name": "Darsnameh",
+    "email": "hello@darsnameh.app"
+  },
+  "license": "MIT",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --dev --no-sandbox",
+    "dist": "electron-builder",
+    "dist:all": "npm run dist:linux && npm run dist:win:all",
+    "dist:linux": "electron-builder --linux AppImage deb",
+    "dist:win": "electron-builder --win portable",
+    "dist:win:setup": "electron-builder --win nsis",
+    "dist:win:all": "electron-builder --win nsis portable",
+    "dist:dir": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^45.3.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "ir.darsnameh.app",
+    "productName": "Darsnameh",
+    "copyright": "Copyright © 2026 Darsnameh",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education",
+      "icon": "build/icons",
+      "maintainer": "Darsnameh <hello@darsnameh.app>",
+      "syncDesktopName": true,
+      "executableArgs": [
+        "--no-sandbox"
+      ],
+      "artifactName": "Darsnameh-${version}-${arch}.${ext}",
+      "desktop": {
+        "entry": {
+          "Name": "درس‌نامه",
+          "Comment": "برنامه‌ریز درسی و مطالعهٔ عصرانه",
+          "StartupWMClass": "Darsnameh"
+        }
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Darsnameh-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "درس‌نامه",
+      "artifactName": "Darsnameh-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Darsnameh-Portable-${version}.${ext}"
+    }
+  }
+}
