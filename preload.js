@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   openDataFolder: () => ipcRenderer.invoke('data:openFolder'),
   appInfo: () => ipcRenderer.invoke('app:info'),
   notify: (title, body) => ipcRenderer.invoke('app:notify', { title, body }),
+  aiChat: (payload) => ipcRenderer.invoke('ai:chat', payload),
+  aiTest: (payload) => ipcRenderer.invoke('ai:test', payload),
   windowMinimize: () => ipcRenderer.send('window:minimize'),
   windowToggleMaximize: () => ipcRenderer.send('window:toggleMaximize'),
   windowClose: () => ipcRenderer.send('window:close'),

@@ -183,6 +183,188 @@ ipcMain.handle('app:info', () => ({
   electron: process.versions.electron
 }));
 
+/* ----------------------------- IPC: AI proxy ----------------------------- */
+
+const AI_TIMEOUT_MS = 90000;
+const AI_MAX_CONTENT = 24000;
+
+function chatCompletionsUrl(baseUrl) {
+  const raw = String(baseUrl || '').trim();
+  if (!raw) throw new Error('آدرس سرویس (Base URL) خالی است.');
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('آدرس سرویس معتبر نیست. نمونه: https://api.openai.com/v1');
+  }
+  if (!/^https?:$/i.test(url.protocol)) {
+    throw new Error('آدرس سرویس باید با http یا https شروع شود.');
+  }
+  let path = url.pathname.replace(/\/+$/, '');
+  if (/\/chat\/completions$/i.test(path)) {
+    url.pathname = path;
+    url.hash = '';
+    return url.toString();
+  }
+  if (!path) path = '/v1/chat/completions';
+  else path = `${path}/chat/completions`;
+  url.pathname = path;
+  url.hash = '';
+  return url.toString();
+}
+
+function aiStatusMessage(status) {
+  if (status === 400 || status === 422) return 'سرویس درخواست را نپذیرفت. آدرس، نام مدل و تنظیمات را بررسی کن.';
+  if (status === 401 || status === 403) return 'کلید API نامعتبر است یا اجازهٔ دسترسی ندارد.';
+  if (status === 404) return 'آدرس سرویس یا نام مدل پیدا نشد.';
+  if (status === 429) return 'سرویس هوش مصنوعی فعلاً محدودیت درخواست دارد. کمی بعد دوباره تلاش کن.';
+  if (status >= 500) return 'سرویس هوش مصنوعی موقتاً در دسترس نیست.';
+  return 'درخواست به سرویس هوش مصنوعی ناموفق بود.';
+}
+
+async function requestCompletion(url, apiKey, body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://darsnameh.app',
+        'X-Title': 'Darsnameh'
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    const text = await response.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { /* keep raw text */ }
+    return { ok: response.ok, status: response.status, data, text };
+  } catch (error) {
+    const timeout = error?.name === 'AbortError';
+    return {
+      ok: false,
+      status: 0,
+      error: timeout
+        ? 'زمان انتظار برای پاسخ سرویس تمام شد.'
+        : 'اتصال به سرویس هوش مصنوعی برقرار نشد. اینترنت و آدرس سرویس را بررسی کن.'
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function extractAiContent(data) {
+  const choice = data?.choices?.[0];
+  const content = choice?.message?.content;
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((part) => {
+      if (typeof part === 'string') return part;
+      if (typeof part?.text === 'string') return part.text;
+      return '';
+    }).join('');
+  }
+  if (typeof choice?.text === 'string') return choice.text;
+  return '';
+}
+
+async function callAi(payload = {}) {
+  const baseUrl = String(payload.baseUrl || '').trim();
+  const apiKey = String(payload.apiKey || '').trim();
+  const model = String(payload.model || '').trim();
+  const messages = Array.isArray(payload.messages) ? payload.messages : [];
+
+  if (!apiKey) return { ok: false, status: 0, error: 'کلید API را وارد کن.' };
+  if (!model) return { ok: false, status: 0, error: 'نام مدل را وارد کن.' };
+  if (!messages.length) return { ok: false, status: 0, error: 'پیامی برای ارسال وجود ندارد.' };
+
+  const safeMessages = messages
+    .filter((m) => m && (m.role === 'system' || m.role === 'user' || m.role === 'assistant'))
+    .slice(-30)
+    .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 20000) }));
+
+  let url;
+  try {
+    url = chatCompletionsUrl(baseUrl);
+  } catch (error) {
+    return { ok: false, status: 0, error: error.message };
+  }
+
+  const body = {
+    model,
+    messages: safeMessages,
+    temperature: Number.isFinite(Number(payload.temperature)) ? Number(payload.temperature) : 0.35,
+    max_tokens: Number.isFinite(Number(payload.maxTokens)) ? Number(payload.maxTokens) : 1800
+  };
+
+  let result = await requestCompletion(url, apiKey, body);
+
+  // Some OpenAI-compatible providers reject sampling fields. Retry with a minimal body.
+  if (!result.ok && (result.status === 400 || result.status === 422)) {
+    const retry = await requestCompletion(url, apiKey, { model, messages: safeMessages });
+    if (retry.ok || retry.status !== 400) result = retry;
+  }
+
+  if (!result.ok) {
+    const detail = result.data?.error?.message
+      || result.data?.message
+      || (result.text ? String(result.text).slice(0, 500) : '')
+      || result.error
+      || '';
+    return {
+      ok: false,
+      status: result.status || 0,
+      error: result.error || aiStatusMessage(result.status),
+      detail
+    };
+  }
+
+  const content = extractAiContent(result.data).trim();
+  if (!content) {
+    return {
+      ok: false,
+      status: result.status,
+      error: 'پاسخ سرویس خالی بود. نام مدل و آدرس سرویس را بررسی کن.',
+      detail: result.text ? String(result.text).slice(0, 500) : ''
+    };
+  }
+
+  return {
+    ok: true,
+    content: content.slice(0, AI_MAX_CONTENT),
+    model: result.data?.model || model,
+    usage: result.data?.usage || null
+  };
+}
+
+ipcMain.handle('ai:chat', async (_event, payload) => {
+  try {
+    return await callAi(payload);
+  } catch (error) {
+    console.error('ai chat failed:', error);
+    return { ok: false, status: 0, error: 'خطای داخلی در ارتباط با سرویس هوش مصنوعی رخ داد.' };
+  }
+});
+
+ipcMain.handle('ai:test', async (_event, payload) => {
+  try {
+    return await callAi({
+      ...payload,
+      messages: [
+        { role: 'system', content: 'You are a connection test. Reply briefly.' },
+        { role: 'user', content: 'فقط بنویس: آماده‌ام' }
+      ],
+      temperature: 0,
+      maxTokens: 128
+    });
+  } catch (error) {
+    console.error('ai test failed:', error);
+    return { ok: false, status: 0, error: 'آزمایش اتصال ناموفق بود.' };
+  }
+});
+
 ipcMain.handle('app:notify', (_event, { title, body }) => {
   if (!Notification.isSupported()) return { ok: false };
   const notification = new Notification({

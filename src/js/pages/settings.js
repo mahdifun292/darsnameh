@@ -15,6 +15,12 @@
     const used = u.usedSubjectIds(state);
     const info = App.info || {};
     const subjectsWithStrength = state.subjects.filter((x) => used.has(x.id));
+    const ai = s.ai;
+    const aiReady = App.ai.isReady(state);
+    const aiConfigured = App.ai.isConfigured(state);
+    let aiHost = ai.baseUrl || '';
+    try { aiHost = new URL(ai.baseUrl).host; } catch { /* keep raw value */ }
+    const activeUser = App.store.activeUser();
 
     root.innerHTML = `
       ${ui.pageHeader('تنظیمات', 'همه‌چیز را اینجا می‌توانی تغییر بدهی؛ تغییرات خودکار ذخیره می‌شوند.', '')}
@@ -40,6 +46,22 @@
             </select>
           </div>
           <button class="btn btn-primary btn-sm" id="save-profile">${icon('check', 14)} ذخیره پروفایل</button>
+        </section>
+
+        <section class="card settings-section wide">
+          <h2>${icon('users', 17)} کاربران</h2>
+          <p>هر کاربر یک فضای کاملاً مستقل دارد؛ برنامه، تکالیف، نمرات و گفتگوی مشاور هر حساب جدا ذخیره می‌شود.</p>
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <strong>${u.toFa(App.store.users.length)} حساب کاربری</strong>
+              <span>کاربر فعال: ${u.escapeHtml(activeUser?.name || state.profile.name || 'کاربر')}</span>
+            </div>
+            <div class="settings-actions">
+              <button class="btn btn-soft btn-sm" data-users-open>${icon('users', 14)} مدیریت کاربران</button>
+              <button class="btn btn-primary btn-sm" data-user-new>${icon('plus', 14)} کاربر جدید</button>
+            </div>
+          </div>
+          <p class="hint">${icon('info', 13)} نام حساب با نام پروفایل هم‌زمان به‌روز می‌شود. برای ساخت حساب دوم، از دکمه «کاربر جدید» استفاده کن.</p>
         </section>
 
         <section class="card settings-section">
@@ -117,6 +139,22 @@
           <button class="btn btn-primary btn-sm" id="save-pomodoro">${icon('check', 14)} ذخیره تنظیمات مطالعه</button>
         </section>
 
+        <section class="card settings-section">
+          <h2>${icon('sparkles', 17)} مشاور هوشمند</h2>
+          <p>یک مشاور درسی فارسی‌زبان که برنامه‌ات را می‌شناسد و می‌تواند تکلیف، امتحان، نمره و برنامهٔ مطالعه بسازد.</p>
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <strong>${aiReady ? 'فعال' : ai.enabled ? 'نیازمند تنظیم' : 'غیرفعال'}</strong>
+              <span>${aiConfigured ? `${u.escapeHtml(ai.model)} • ${u.escapeHtml(aiHost)}` : 'هنوز آدرس، کلید و مدل تنظیم نشده است.'}</span>
+            </div>
+            <div class="settings-actions">
+              <button class="btn btn-soft btn-sm" data-ai-settings>${icon('settings', 14)} تنظیم</button>
+              <button class="btn btn-ghost btn-sm" data-go="ai">${icon('sparkles', 14)} رفتن به مشاور</button>
+            </div>
+          </div>
+          <p class="hint">${icon('lock', 13)} کلید API فقط در فایل دادهٔ همین دستگاه ذخیره می‌شود و در خروجی پشتیبان هم قرار می‌گیرد؛ فایل پشتیبان را محرمانه نگه دار.</p>
+        </section>
+
         <section class="card settings-section wide">
           <h2>${icon('book', 17)} دروس</h2>
           <p>درس‌های پیش‌فرض و دلخواه. نام، رنگ و سطح هر درس از همین‌جا قابل تغییر است.</p>
@@ -173,14 +211,14 @@
           <h2>${icon('database', 17)} داده‌ها</h2>
           <p>از برنامه نسخه پشتیبان بگیر یا اطلاعات را به دستگاه دیگر منتقل کن.</p>
           <div class="data-actions">
-            <button class="btn btn-soft btn-sm" data-export>${icon('download', 14)} خروجی JSON</button>
+            <button class="btn btn-soft btn-sm" data-export>${icon('download', 14)} خروجی همه حساب‌ها</button>
             <button class="btn btn-soft btn-sm" data-import>${icon('upload', 14)} بازیابی</button>
             <button class="btn btn-ghost btn-sm" data-open-folder>${icon('database', 14)} پوشه داده</button>
           </div>
           <div class="data-path">${u.escapeHtml(info.dataPath || 'محل ذخیره: پوشه داده برنامه')}</div>
           <div class="danger-zone" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-            <button class="btn btn-danger btn-sm" data-reset-all>${icon('trash', 14)} پاک کردن همه داده‌ها</button>
-            <p class="hint" style="margin-top:6px">${icon('alert', 13)} این کار همه برنامه، تکالیف و نمرات را پاک می‌کند و برنامه را به حالت اول برمی‌گرداند.</p>
+            <button class="btn btn-danger btn-sm" data-reset-user>${icon('trash', 14)} پاک کردن داده‌های این کاربر</button>
+            <p class="hint" style="margin-top:6px">${icon('alert', 13)} فقط برنامه، تکالیف، نمرات و گفتگوی مشاور همین کاربر پاک می‌شود. حساب‌های دیگر دست‌نخورده می‌مانند.</p>
           </div>
         </section>
 
@@ -201,7 +239,8 @@
             <div class="shortcut"><span>جمع‌بندی</span><kbd>Ctrl + 5</kbd></div>
             <div class="shortcut"><span>نمرات</span><kbd>Ctrl + 6</kbd></div>
             <div class="shortcut"><span>مطالعه عصرانه</span><kbd>Ctrl + 7</kbd></div>
-            <div class="shortcut"><span>تنظیمات</span><kbd>Ctrl + 8</kbd></div>
+            <div class="shortcut"><span>مشاور هوشمند</span><kbd>Ctrl + 8</kbd></div>
+            <div class="shortcut"><span>تنظیمات</span><kbd>Ctrl + 9</kbd></div>
             <div class="shortcut"><span>شروع / توقف زمان‌سنج</span><kbd>Space</kbd></div>
             <div class="shortcut"><span>بستن پنجره‌ها</span><kbd>Esc</kbd></div>
           </div>
@@ -224,6 +263,10 @@
       });
       ui.toast('پروفایل ذخیره شد.', 'success');
     });
+
+    root.querySelector('[data-users-open]')?.addEventListener('click', () => App.usersUI?.open?.());
+    root.querySelector('[data-user-new]')?.addEventListener('click', () => App.usersUI?.openCreate?.());
+    root.querySelector('[data-ai-settings]')?.addEventListener('click', () => App.pages.ai?.openConfig?.());
 
     root.querySelectorAll('[data-theme-set]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -358,10 +401,10 @@
     });
 
     root.querySelector('[data-export]')?.addEventListener('click', async () => {
-      const json = JSON.stringify(state, null, 2);
+      const json = JSON.stringify(App.store.exportSnapshot(), null, 2);
       if (window.api?.exportData) {
         const result = await window.api.exportData(json);
-        if (result.ok) ui.toast('نسخه پشتیبان ذخیره شد.', 'success');
+        if (result.ok) ui.toast('نسخه پشتیبان همه حساب‌ها ذخیره شد.', 'success');
         else if (result.error) ui.toast('ذخیره نسخه پشتیبان ناموفق بود.', 'error');
       } else {
         const blob = new Blob([json], { type: 'application/json' });
@@ -382,17 +425,22 @@
       if (!result.ok) return;
       let parsed;
       try { parsed = JSON.parse(result.data); } catch { parsed = null; }
-      if (!parsed || typeof parsed !== 'object' || !parsed.profile) {
+      const isEnvelope = Boolean(parsed && parsed.schema === 2 && Array.isArray(parsed.users) && parsed.users.length);
+      const isLegacy = Boolean(parsed && typeof parsed === 'object' && parsed.profile && parsed.settings);
+      if (!isEnvelope && !isLegacy) {
         ui.toast('فایل انتخاب‌شده معتبر نیست.', 'error');
         return;
       }
       const ok = await ui.confirm({
         title: 'بازیابی نسخه پشتیبان',
-        message: 'داده‌های فعلی با محتوای این فایل جایگزین می‌شوند. ادامه می‌دهی؟',
+        message: isEnvelope
+          ? 'همهٔ حساب‌های فعلی با حساب‌های داخل این فایل جایگزین می‌شوند. ادامه می‌دهی؟'
+          : 'داده‌های کاربر فعال با محتوای این فایل جایگزین می‌شود؛ حساب‌های دیگر دست‌نخورده می‌مانند. ادامه می‌دهی؟',
         confirmText: 'بازیابی کن'
       });
       if (!ok) return;
-      App.store.replace(parsed);
+      if (isEnvelope) App.store.importSnapshot(parsed);
+      else App.store.replace(parsed);
       location.hash = '#/home';
       ui.toast('نسخه پشتیبان بازیابی شد.', 'success');
     });
@@ -401,19 +449,20 @@
       window.api?.openDataFolder?.();
     });
 
-    root.querySelector('[data-reset-all]')?.addEventListener('click', async () => {
+    root.querySelector('[data-reset-user]')?.addEventListener('click', async () => {
       const ok = await ui.confirm({
-        title: 'پاک کردن همه داده‌ها',
-        message: 'همه برنامه هفتگی، تکالیف، امتحانات، نمرات و آمار پاک می‌شود. مطمئنی؟',
+        title: 'پاک کردن داده‌های این کاربر',
+        message: 'همهٔ برنامه هفتگی، تکالیف، امتحانات، نمرات، آمار مطالعه و گفتگوی مشاور این کاربر پاک می‌شود. حساب‌های دیگر دست‌نخورده می‌مانند. مطمئنی؟',
         danger: true,
-        confirmText: 'بله، همه را پاک کن'
+        confirmText: 'بله، پاک کن'
       });
       if (!ok) return;
       const fresh = u.makeDefaultState();
+      fresh.profile.name = state.profile.name || '';
       App.store.replace(fresh);
       try { App.pages.study?.resetState?.(); } catch { /* noop */ }
       location.hash = '#/home';
-      ui.toast('همه داده‌ها پاک شد. دوباره شروع کنیم!', 'info');
+      ui.toast('داده‌های این کاربر پاک شد. دوباره شروع کنیم!', 'info');
     });
   }
 

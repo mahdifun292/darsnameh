@@ -11,7 +11,8 @@
     { id: 'exams', label: 'امتحانات', icon: 'exam' },
     { id: 'summary', label: 'برنامه', icon: 'table' },
     { id: 'grades', label: 'نمرات', icon: 'award' },
-    { id: 'study', label: 'مطالعه عصرانه', icon: 'timer' }
+    { id: 'study', label: 'مطالعه عصرانه', icon: 'timer' },
+    { id: 'ai', label: 'مشاور هوشمند', icon: 'sparkles' }
   ];
 
   App.view = { page: 'home', lastPage: null };
@@ -68,6 +69,7 @@
                 <span id="side-grade">${u.escapeHtml(u.gradeLabel(state.profile.grade))}</span>
               </div>
               <div class="side-actions">
+                <button class="icon-btn" id="user-switch" title="تغییر کاربر" aria-label="تغییر کاربر">${icon('users', 17)}</button>
                 <button class="icon-btn" id="theme-toggle" title="تغییر حالت نمایش" aria-label="تغییر حالت نمایش">${icon(resolveTheme(state) === 'dark' ? 'sun' : 'moon', 17)}</button>
               </div>
             </div>
@@ -84,6 +86,7 @@
     `;
 
     document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+    document.getElementById('user-switch')?.addEventListener('click', () => App.usersUI?.open?.());
     updateShell();
   }
 
@@ -107,7 +110,10 @@
     const sideName = document.getElementById('side-name');
     if (sideName) sideName.textContent = name;
     const sideGrade = document.getElementById('side-grade');
-    if (sideGrade) sideGrade.textContent = u.gradeLabel(state.profile.grade);
+    if (sideGrade) {
+      const count = App.store.users.length;
+      sideGrade.textContent = `${u.gradeLabel(state.profile.grade)}${count > 1 ? ` • ${u.toFa(count)} کاربر` : ''}`;
+    }
     const avatar = document.getElementById('side-avatar');
     if (avatar) avatar.textContent = initial;
     const toggle = document.getElementById('theme-toggle');
@@ -186,10 +192,15 @@
     }
   }
 
-  function onStoreChange() {
+  function onStoreChange(reason = 'update') {
     const state = App.store.state;
     if (!state) return;
     applyTheme(state);
+    if (reason === 'user' || reason === 'replace') {
+      try { App.pages[App.view.page]?.unmount?.(); } catch (error) { console.warn(error); }
+      try { App.pages.study?.resetState?.(); } catch (error) { console.warn(error); }
+      App.view.lastPage = null;
+    }
     if (!state.profile.setupComplete) {
       renderOnboarding();
       return;
@@ -248,7 +259,7 @@
     if (document.querySelector('.modal-backdrop')) return;
 
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
-      const map = { '1': 'home', '2': 'schedule', '3': 'homework', '4': 'exams', '5': 'summary', '6': 'grades', '7': 'study', '8': 'settings' };
+      const map = { '1': 'home', '2': 'schedule', '3': 'homework', '4': 'exams', '5': 'summary', '6': 'grades', '7': 'study', '8': 'ai', '9': 'settings' };
       if (map[event.key]) {
         event.preventDefault();
         navigate(map[event.key]);
@@ -305,7 +316,7 @@
 
     applyTheme(App.store.state);
 
-    App.store.subscribe(() => onStoreChange());
+    App.store.subscribe((_state, reason) => onStoreChange(reason));
     window.addEventListener('hashchange', onRoute);
     window.addEventListener('keydown', handleShortcuts);
 

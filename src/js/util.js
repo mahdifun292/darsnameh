@@ -54,6 +54,14 @@
     { id: 'free', label: 'مطالعه آزاد', hint: 'تمرکز روی هر درسی' }
   ];
 
+  const DEFAULT_AI = {
+    enabled: false,
+    baseUrl: 'https://api.openai.com/v1',
+    apiKey: '',
+    model: 'gpt-4o-mini',
+    instructions: ''
+  };
+
   const ACCENTS = {
     violet: { main: '#8b5cf6', soft: 'rgba(139,92,246,.16)', name: 'بنفش' },
     teal: { main: '#14b8a6', soft: 'rgba(20,184,166,.16)', name: 'فیروزه‌ای' },
@@ -434,6 +442,7 @@
           autoStart: false,
           sound: true
         },
+        ai: { ...DEFAULT_AI },
         notifications: true
       },
       subjects,
@@ -441,7 +450,8 @@
       homework: [],
       exams: [],
       manualGrades: [],
-      pomodoroSessions: []
+      pomodoroSessions: [],
+      aiChat: { messages: [], plans: [] }
     };
   }
 
@@ -457,7 +467,8 @@
         ...base.settings,
         ...(raw.settings || {}),
         rotating: { ...base.settings.rotating, ...((raw.settings || {}).rotating || {}) },
-        pomodoro: { ...base.settings.pomodoro, ...((raw.settings || {}).pomodoro || {}) }
+        pomodoro: { ...base.settings.pomodoro, ...((raw.settings || {}).pomodoro || {}) },
+        ai: { ...base.settings.ai, ...((raw.settings || {}).ai || {}) }
       },
       subjects: Array.isArray(raw.subjects) && raw.subjects.length
         ? raw.subjects.map((s, i) => {
@@ -524,6 +535,49 @@
         kind: STUDY_KINDS.some((k) => k.id === s.kind) ? s.kind : 'free',
         date: studySessionDate(s)
       }));
+
+    const ai = state.settings.ai;
+    ai.enabled = Boolean(ai.enabled);
+    ai.baseUrl = String(ai.baseUrl || DEFAULT_AI.baseUrl).trim();
+    ai.apiKey = String(ai.apiKey || '').trim();
+    ai.model = String(ai.model || DEFAULT_AI.model).trim();
+    ai.instructions = String(ai.instructions || '').slice(0, 2000);
+
+    const rawChat = raw.aiChat && typeof raw.aiChat === 'object' ? raw.aiChat : {};
+    const messages = Array.isArray(rawChat.messages) ? rawChat.messages : [];
+    const plans = Array.isArray(rawChat.plans) ? rawChat.plans : [];
+    state.aiChat = {
+      messages: messages
+        .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .slice(-120)
+        .map((m) => ({
+          role: m.role,
+          content: String(m.content).slice(0, 8000),
+          at: m.at || new Date().toISOString(),
+          planId: m.planId || null,
+          error: Boolean(m.error),
+          changes: Array.isArray(m.changes) ? m.changes.slice(0, 12).map(String) : [],
+          warnings: Array.isArray(m.warnings) ? m.warnings.slice(0, 12).map(String) : []
+        })),
+      plans: plans
+        .filter((p) => p && typeof p === 'object' && Array.isArray(p.items))
+        .slice(-20)
+        .map((p) => ({
+          id: p.id || uid('plan'),
+          title: String(p.title || 'برنامهٔ مطالعه').slice(0, 160),
+          summary: String(p.summary || '').slice(0, 1200),
+          createdAt: p.createdAt || new Date().toISOString(),
+          items: p.items
+            .filter((item) => item && item.subjectId)
+            .slice(0, 40)
+            .map((item) => ({
+              subjectId: item.subjectId,
+              date: isISODate(item.date) ? item.date : todayISO(),
+              minutes: clamp(Number(item.minutes) || 30, 5, 240),
+              focus: String(item.focus || '').slice(0, 300)
+            }))
+        }))
+    };
 
     return state;
   }
@@ -859,6 +913,7 @@
     isoOf,
     todayISO,
     parseISO,
+    isISODate,
     addDays,
     weekdayKey,
     weekStart,

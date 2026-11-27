@@ -10,6 +10,7 @@
     grade: 7,
     days: ['sat', 'sun', 'mon', 'tue', 'wed'],
     initialized: false,
+    userId: null,
     createdAt: null
   };
 
@@ -90,6 +91,11 @@
         </div>
 
         <p class="aside-note">${icon('heart', 12)} همه‌چیز در تنظیمات قابل تغییر است.</p>
+
+        <div class="aside-account">
+          ${App.store.users.length > 1 ? `<button class="btn btn-ghost btn-sm" data-switch-user>${icon('users', 14)} تغییر کاربر</button>` : ''}
+          <button class="btn btn-ghost btn-sm" data-new-user>${icon('plus', 14)} کاربر جدید</button>
+        </div>
       </aside>
     `;
   }
@@ -179,9 +185,11 @@
 
   function render(root) {
     const state = App.store.state;
-    if (!wizard.initialized || wizard.createdAt !== state.createdAt) {
+    if (!wizard.initialized || wizard.userId !== App.store.activeUserId || wizard.createdAt !== state.createdAt) {
+      wizard.step = 0;
       wizard.grade = state.profile.grade || 7;
       wizard.days = state.settings.weekDays.length ? [...state.settings.weekDays] : ['sat', 'sun', 'mon', 'tue', 'wed'];
+      wizard.userId = App.store.activeUserId;
       wizard.createdAt = state.createdAt;
       wizard.initialized = true;
     }
@@ -223,6 +231,9 @@
   }
 
   function bind(root, state) {
+    root.querySelector('[data-switch-user]')?.addEventListener('click', () => App.usersUI?.openSwitch?.());
+    root.querySelector('[data-new-user]')?.addEventListener('click', () => App.usersUI?.openCreate?.());
+
     root.querySelectorAll('[data-grade]').forEach((btn) => {
       btn.addEventListener('click', () => {
         wizard.grade = Number(btn.dataset.grade);

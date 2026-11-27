@@ -616,9 +616,14 @@
     const params = new URLSearchParams(query);
     const kind = params.get('kind');
     const subject = params.get('subject');
+    const minutes = Number(params.get('minutes'));
     if (study.phase !== 'idle') return;
     if (u.STUDY_KINDS.some((k) => k.id === kind)) study.kind = kind;
     if (subject && state.subjects.some((s) => s.id === subject)) study.subjectId = subject;
+    if (Number.isFinite(minutes) && minutes >= 1) {
+      study.focusMinutes = u.clamp(Math.round(minutes), 1, 120);
+      study.customized = true;
+    }
     study.mode = 'focus';
   }
 
